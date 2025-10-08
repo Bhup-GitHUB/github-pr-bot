@@ -97,30 +97,23 @@ async function reviewCode(
   content: string | null,
   geminiKey: string
 ): Promise<string> {
-  const prompt = `You are a code reviewer. Review this code change for a GitHub PR.
-
-Look for:
-1. Security issues
-2. Performance problems
-3. Best practices violations
-4. Bugs or errors
+  const prompt = `Review this code for issues:
 
 File: ${filename}
-
-Patch (changes):
+Changes:
 \`\`\`
 ${patch}
 \`\`\`
 
 ${
   content
-    ? `Full file content:\n\`\`\`\n${content}\n\`\`\``
+    ? `Full file:\n\`\`\`\n${content}\n\`\`\``
     : "Full content not available"
 }
 
-Provide a brief, constructive review (max 150 words). If there are no issues, just say "Looks good!"`;
+Give a brief review (max 100 words). If no issues, say "Looks good!"`;
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro-latest:generateContent?key=${geminiKey}`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiKey}`;
 
   const response = await fetch(url, {
     method: "POST",
@@ -132,7 +125,7 @@ Provide a brief, constructive review (max 150 words). If there are no issues, ju
         },
       ],
       generationConfig: {
-        maxOutputTokens: 500,
+        maxOutputTokens: 1000,
         temperature: 0.3,
       },
     }),
