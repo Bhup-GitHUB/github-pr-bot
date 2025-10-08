@@ -111,11 +111,11 @@ ${
     : "Full content not available"
 }
 
-Provide feedback in this format:
+IMPORTANT: Provide feedback EXACTLY in this format:
 - Line X: [Issue description and suggestion]
 - Line Y: [Another issue and how to fix it]
 
-Focus on: security issues, bugs, performance problems, best practices. If no issues, say "Looks good!"`;
+You MUST include the line number and use the exact format above. Focus on: security issues, bugs, performance problems, best practices. If no issues, say "Looks good!"`;
 
   const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiKey}`;
 
@@ -344,8 +344,11 @@ app.post("/webhook", async (c) => {
         );
 
         if (!review.includes("Looks good")) {
+          console.log(`AI Review Response: ${review}`);
+
           // Try to parse line-specific comments
           const lineComments = parseLineComments(review);
+          console.log(`Parsed line comments: ${JSON.stringify(lineComments)}`);
 
           if (lineComments.length > 0) {
             // Post line-specific comments
