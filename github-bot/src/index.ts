@@ -97,7 +97,7 @@ async function reviewCode(
   content: string | null,
   geminiKey: string
 ): Promise<string> {
-  const prompt = `Review this code for issues:
+  const prompt = `Review this code and provide specific line-by-line feedback:
 
 File: ${filename}
 Changes:
@@ -111,7 +111,11 @@ ${
     : "Full content not available"
 }
 
-Give a brief review (max 100 words). If no issues, say "Looks good!"`;
+Provide feedback in this format:
+- Line X: [Issue description and suggestion]
+- Line Y: [Another issue and how to fix it]
+
+Focus on: security issues, bugs, performance problems, best practices. If no issues, say "Looks good!"`;
 
   const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiKey}`;
 
@@ -182,6 +186,61 @@ async function postPRComment(
 
   if (!response.ok) {
     throw new Error(`Failed to post comment: ${response.statusText}`);
+  }
+
+  return response.json();
+}
+
+function parseLineComments(
+  review: string
+): Array<{ line: number; comment: string }> {
+  const lineComments: Array<{ line: number; comment: string }> = [];
+  const lines = review.split("\n");
+
+  for (const line of lines) {
+    const match = line.match(/^- Line (\d+):\s*(.+)$/);
+    if (match) {
+      const lineNumber = parseInt(match[1]);
+      const comment = match[2].trim();
+      if (lineNumber > 0 && comment) {
+        lineComments.push({ line: lineNumber, comment });
+      }
+    }
+  }
+
+  return lineComments;
+}
+
+async function postLineComment(
+  owner: string,
+  repo: string,
+  prNumber: number,
+  commitId: string,
+  path: string,
+  line: number,
+  body: string,
+  token: string
+) {
+  const url = `https://api.github.com/repos/${owner}/${repo}/pulls/${prNumber}/comments`;
+
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      Accept: "application/vnd.github.v3+json",
+      "Content-Type": "application/json",
+      "User-Agent": "GitHub-PR-Bot",
+    },
+    body: JSON.stringify({
+      body,
+      commit_id: commitId,
+      path,
+      line,
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to post line comment: ${response.statusText}`);
   }
 
   return response.json();
@@ -285,9 +344,36 @@ app.post("/webhook", async (c) => {
         );
 
         if (!review.includes("Looks good")) {
-          const comment = `**Code Review: ${file.filename}**\n\n${review}`;
-          await postPRComment(owner, repo, prNumber, comment, githubToken);
-          console.log(`Posted review for ${file.filename}`);
+          // Try to parse line-specific comments
+          const lineComments = parseLineComments(review);
+
+          if (lineComments.length > 0) {
+            // Post line-specific comments
+            for (const lineComment of lineComments) {
+              try {
+                await postLineComment(
+                  owner,
+                  repo,
+                  prNumber,
+                  pr.head.sha,
+                  file.filename,
+                  lineComment.line,
+                  lineComment.comment,
+                  githubToken
+                );
+                console.log(
+                  `Posted line comment for ${file.filename}:${lineComment.line}`
+                );
+              } catch (error) {
+                console.error(`Error posting line comment:`, error);
+              }
+            }
+          } else {
+            // Fallback to general comment
+            const comment = `**Code Review: ${file.filename}**\n\n${review}`;
+            await postPRComment(owner, repo, prNumber, comment, githubToken);
+            console.log(`Posted general review for ${file.filename}`);
+          }
         } else {
           console.log(`${file.filename} looks good, skipping comment`);
         }
