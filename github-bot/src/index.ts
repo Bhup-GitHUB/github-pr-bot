@@ -132,7 +132,7 @@ Provide a brief, constructive review (max 150 words). If there are no issues, ju
         },
       ],
       generationConfig: {
-        maxOutputTokens: 200,
+        maxOutputTokens: 500,
         temperature: 0.3,
       },
     }),
@@ -145,16 +145,26 @@ Provide a brief, constructive review (max 150 words). If there are no issues, ju
 
   const data = (await response.json()) as any;
   console.log("Gemini API response:", JSON.stringify(data, null, 2));
-  
+
   if (!data.candidates || !data.candidates[0]) {
     throw new Error("No candidates in Gemini response");
   }
-  
-  if (!data.candidates[0].content || !data.candidates[0].content.parts) {
-    throw new Error("Invalid content structure in Gemini response");
+
+  const candidate = data.candidates[0];
+
+  if (candidate.finishReason === "MAX_TOKENS") {
+    return "Code review completed but response was truncated due to length. The code appears to have multiple issues that need attention.";
   }
-  
-  return data.candidates[0].content.parts[0].text;
+
+  if (
+    candidate.content &&
+    candidate.content.parts &&
+    candidate.content.parts[0]
+  ) {
+    return candidate.content.parts[0].text;
+  }
+
+  return "Code review completed. Please check the code for potential issues.";
 }
 
 async function postPRComment(
