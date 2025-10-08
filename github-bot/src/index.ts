@@ -109,7 +109,7 @@ ${
     : "Full content not available"
 }
 
-Provide a brief, constructive review (max 150 words). If there are no issues, just say "✅ Looks good!"`;
+Provide a brief, constructive review (max 150 words). If there are no issues, just say "Looks good!"`;
 
   const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`;
 
@@ -189,7 +189,7 @@ app.post("/webhook", async (c) => {
       return c.json({ error: "Invalid signature" }, 401);
     }
 
-    console.log("✅ Signature verified");
+    console.log("Signature verified");
 
     if (event !== "pull_request") {
       return c.json({ message: "Event ignored" });
@@ -209,7 +209,12 @@ app.post("/webhook", async (c) => {
 
     console.log(`Reviewing PR #${prNumber} in ${owner}/${repo}`);
 
-    const files = await getPRFiles(owner, repo, prNumber, githubToken);
+    const files = (await getPRFiles(
+      owner,
+      repo,
+      prNumber,
+      githubToken
+    )) as any[];
     console.log(`Found ${files.length} files in PR`);
 
     if (files.length === 0) {
@@ -256,8 +261,8 @@ app.post("/webhook", async (c) => {
           geminiKey
         );
 
-        if (!review.includes("✅")) {
-          const comment = `**🤖 Code Review: ${file.filename}**\n\n${review}`;
+        if (!review.includes("Looks good")) {
+          const comment = `**Code Review: ${file.filename}**\n\n${review}`;
           await postPRComment(owner, repo, prNumber, comment, githubToken);
           console.log(`Posted review for ${file.filename}`);
         } else {
