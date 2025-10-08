@@ -44,14 +44,21 @@ async function getPRFiles(
   token: string
 ) {
   const url = `https://api.github.com/repos/${owner}/${repo}/pulls/${prNumber}/files`;
+  console.log(`Fetching PR files from: ${url}`);
+  console.log(`Token length: ${token.length}`);
+  
   const response = await fetch(url, {
     headers: {
-      Authorization: `token ${token}`,
+      Authorization: `Bearer ${token}`,
       Accept: "application/vnd.github.v3+json",
     },
   });
 
+  console.log(`Response status: ${response.status}`);
+  
   if (!response.ok) {
+    const errorBody = await response.text();
+    console.log(`Error response: ${errorBody}`);
     throw new Error(`Failed to fetch PR files: ${response.statusText}`);
   }
 
@@ -69,7 +76,7 @@ async function getFileContent(
   try {
     const response = await fetch(url, {
       headers: {
-        Authorization: `token ${token}`,
+        Authorization: `Bearer ${token}`,
         Accept: "application/vnd.github.v3.raw",
       },
     });
@@ -150,7 +157,7 @@ async function postPRComment(
   const response = await fetch(url, {
     method: "POST",
     headers: {
-      Authorization: `token ${token}`,
+      Authorization: `Bearer ${token}`,
       Accept: "application/vnd.github.v3+json",
       "Content-Type": "application/json",
     },
