@@ -51,6 +51,7 @@ async function getPRFiles(
     headers: {
       Authorization: `Bearer ${token}`,
       Accept: "application/vnd.github.v3+json",
+      "User-Agent": "GitHub-PR-Bot",
     },
   });
 
@@ -78,6 +79,7 @@ async function getFileContent(
       headers: {
         Authorization: `Bearer ${token}`,
         Accept: "application/vnd.github.v3.raw",
+        "User-Agent": "GitHub-PR-Bot",
       },
     });
 
@@ -118,7 +120,7 @@ ${
 
 Provide a brief, constructive review (max 150 words). If there are no issues, just say "Looks good!"`;
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro-latest:generateContent?key=${geminiKey}`;
 
   const response = await fetch(url, {
     method: "POST",
@@ -142,6 +144,16 @@ Provide a brief, constructive review (max 150 words). If there are no issues, ju
   }
 
   const data = (await response.json()) as any;
+  console.log("Gemini API response:", JSON.stringify(data, null, 2));
+  
+  if (!data.candidates || !data.candidates[0]) {
+    throw new Error("No candidates in Gemini response");
+  }
+  
+  if (!data.candidates[0].content || !data.candidates[0].content.parts) {
+    throw new Error("Invalid content structure in Gemini response");
+  }
+  
   return data.candidates[0].content.parts[0].text;
 }
 
@@ -160,6 +172,7 @@ async function postPRComment(
       Authorization: `Bearer ${token}`,
       Accept: "application/vnd.github.v3+json",
       "Content-Type": "application/json",
+      "User-Agent": "GitHub-PR-Bot",
     },
     body: JSON.stringify({ body }),
   });
