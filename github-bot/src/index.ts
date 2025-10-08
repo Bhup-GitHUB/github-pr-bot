@@ -46,7 +46,7 @@ async function getPRFiles(
   const url = `https://api.github.com/repos/${owner}/${repo}/pulls/${prNumber}/files`;
   console.log(`Fetching PR files from: ${url}`);
   console.log(`Token length: ${token.length}`);
-  
+
   const response = await fetch(url, {
     headers: {
       Authorization: `Bearer ${token}`,
@@ -55,7 +55,7 @@ async function getPRFiles(
   });
 
   console.log(`Response status: ${response.status}`);
-  
+
   if (!response.ok) {
     const errorBody = await response.text();
     console.log(`Error response: ${errorBody}`);
